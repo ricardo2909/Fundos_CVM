@@ -158,7 +158,7 @@ def app():
     # Se houver CNPJs salvos, exibe o campo para selecionar a data e o botão para consulta
     if cnpjs_salvos:
         data = st.date_input("Selecione a data que deseja consultar", value=data_padrao, max_value=dt.date.today())
-
+        
         # Formatando a data para o formato AAAAMMDD
         data_str = data.strftime('%Y%m%d')
 
