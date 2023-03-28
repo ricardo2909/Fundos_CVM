@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 import pickle
 import time
+from io import BytesIO
 
 
 # Definindo a função para consultar os fundos
@@ -150,24 +151,28 @@ def app():
 
     nome_arquivo = st.text_input("Digite o nome do arquivo para salvar (sem extensão)", value = f"Fundos_{data_str}", max_chars=50)
     # Botão para exportar a tabela resultante em diferentes formatos
-    formato_exportacao = st.selectbox("Selecione o formato de exportação", ["Excel", "CSV", "PDF"])
-    if st.button("Exportar tabela"):
-        if resultado.empty:
+    formato_exportacao = st.selectbox("Selecione o formato de exportação", ["Excel", "CSV"])
+    # if st.button("Exportar tabela"):
+    #     if resultado.empty:
+    #         st.warning("Não há tabela para exportar.")
+    #     else:
+    #         if nome_arquivo:
+    #             nome_arquivo = nome_arquivo.replace(" ", "_")
+    #         else:
+    #             nome_arquivo = "resultado"
+    if resultado.empty:
             st.warning("Não há tabela para exportar.")
-        else:
-            # Definindo o nome do arquivo de acordo com o que foi digitado pelo usuário
-            if nome_arquivo:
-                nome_arquivo = nome_arquivo.replace(" ", "_")
-            else:
-                nome_arquivo = "resultado"
-            if formato_exportacao == "Excel":
-                excel_file = resultado.to_excel(f"{nome_arquivo}.xlsx", index=False)
-            elif formato_exportacao == "CSV":
-                csv_file = resultado.to_csv(f"{nome_arquivo}.csv", index=False)
-            elif formato_exportacao == "PDF":
-                pdf_file = resultado.to_pdf(f"{nome_arquivo}.pdf", index=False)
-            st.success(f"Tabela exportada como {nome_arquivo}.{formato_exportacao}")
-
+    elif formato_exportacao == "Excel":
+        with BytesIO() as output:
+            with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                resultado.to_excel(writer, index=False)
+            excel_data = output.getvalue()
+        st.download_button(label="Download Excel", data=excel_data, file_name=f"{nome_arquivo}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    elif formato_exportacao == "CSV":
+        with BytesIO() as output:
+            resultado.to_csv(output, index=False)
+            csv_data = output.getvalue()
+        st.download_button(label="Download CSV", data=csv_data, file_name=f"{nome_arquivo}.csv", mime="text/csv")
 
 
 
