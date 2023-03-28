@@ -10,6 +10,9 @@ import pickle
 import time
 import io
 import base64
+import hashlib
+import streamlit as st
+
 
 
 def export_file(df, file_format, file_name):
@@ -77,8 +80,6 @@ def app():
         cnpjs_salvos = []
 
     st.title("Consulta de Fundos")
-
-    
 
     # Criando as caixas de texto para receber os CNPJs e a data
     cnpj_input = st.text_input("Digite o CNPJ do fundo")
@@ -158,7 +159,7 @@ def app():
     # Se houver CNPJs salvos, exibe o campo para selecionar a data e o botão para consulta
     if cnpjs_salvos:
         data = st.date_input("Selecione a data que deseja consultar", value=data_padrao, max_value=dt.date.today())
-        
+
         # Formatando a data para o formato AAAAMMDD
         data_str = data.strftime('%Y%m%d')
 
@@ -190,12 +191,5 @@ def app():
                 st.markdown(download_link, unsafe_allow_html=True)
             else:
                 st.error("Não foi possível gerar o arquivo para download.")
-
-
-
-
-if __name__ == "__main__":
-    app()
-
 
 
