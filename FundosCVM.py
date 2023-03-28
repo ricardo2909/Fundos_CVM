@@ -10,6 +10,9 @@ import pickle
 import time
 import io
 import base64
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 
 def export_file(df, file_format, file_name):
     if file_format == "Excel":
@@ -28,6 +31,26 @@ def export_file(df, file_format, file_name):
 
         b64 = base64.b64encode(output.getvalue().encode("utf-8")).decode("utf-8")
         download_link = f'<a href="data:text/csv;base64,{b64}" download="{file_name}.csv">Download CSV file</a>'
+    elif file_format == "PDF":
+        output = io.BytesIO()
+        doc = SimpleDocTemplate(output, pagesize=letter)
+        data = [df.columns.to_list()] + df.to_numpy().tolist()
+        table = Table(data)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 14),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        doc.build([table])
+        output.seek(0)
+
+        b64 = base64.b64encode(output.getvalue()).decode("utf-8")
+        download_link = f'<a href="data:application/pdf;base64,{b64}" download="{file_name}.pdf">Download PDF file</a>'
     else:
         # Add other formats if needed
         pass
@@ -174,7 +197,7 @@ def app():
 
     nome_arquivo = st.text_input("Digite o nome do arquivo para salvar (sem extensão)", value = f"Fundos_{data_str}", max_chars=50)
     # Botão para exportar a tabela resultante em diferentes formatos
-    formato_exportacao = st.selectbox("Selecione o formato de exportação", ["Excel", "CSV"])
+    formato_exportacao = st.selectbox("Selecione o formato de exportação", ["PDF", "CSV"])
     if st.button("Exportar tabela"):
         if resultado.empty:
             st.warning("Não há tabela para exportar.")
