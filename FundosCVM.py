@@ -8,7 +8,21 @@ import os
 import pickle
 import time
 from io import BytesIO
-import xlsxwriter
+import base64
+
+def export_file(df, format, file_name):
+    if format == 'Excel':
+        file_extension = 'xlsx'
+        to_export = df.to_excel(index=False)
+    elif format == 'CSV':
+        file_extension = 'csv'
+        to_export = df.to_csv(index=False)
+    else:
+        return None
+
+    b64 = base64.b64encode(to_export.encode()).decode()
+    download_link = f'<a href="data:application/{file_extension};base64,{b64}" download="{file_name}.{file_extension}">Clique aqui para baixar o arquivo {file_name}.{file_extension}</a>'
+    return download_link
 
 # Definindo a função para consultar os fundos
 @st.cache_data()
@@ -156,25 +170,16 @@ def app():
         if resultado.empty:
             st.warning("Não há tabela para exportar.")
         else:
-            # Definindo o nome do arquivo de acordo com o que foi digitado pelo usuário
             if nome_arquivo:
                 nome_arquivo = nome_arquivo.replace(" ", "_")
             else:
                 nome_arquivo = "resultado"
-            if formato_exportacao == "Excel":
-                output = BytesIO()
-                with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-                    resultado.to_excel(writer, index=False)
-                    writer.save()
-                output.seek(0)
-                st.download_button("Baixar arquivo Excel", data=output, file_name=f"{nome_arquivo}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            elif formato_exportacao == "CSV":
-                csv_output = resultado.to_csv(index=False)
-                st.download_button("Baixar arquivo CSV", data=csv_output, file_name=f"{nome_arquivo}.csv", mime="text/csv")
-            elif formato_exportacao == "PDF":
-                # PDF export functionality
-                pass
-            st.success(f"Tabela exportada como {nome_arquivo}.{formato_exportacao}")
+
+            download_link = export_file(resultado, formato_exportacao, nome_arquivo)
+            if download_link:
+                st.markdown(download_link, unsafe_allow_html=True)
+            else:
+                st.error("Não foi possível gerar o arquivo para download.")
 
 
 

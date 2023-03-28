@@ -3,4 +3,4 @@ pandas
 requests
 time
 io
-xlsxwriter
+base64
