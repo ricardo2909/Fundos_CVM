@@ -8,7 +8,7 @@ import os
 import pickle
 import time
 from io import BytesIO
-
+import xlsxwriter
 
 # Definindo a função para consultar os fundos
 @st.cache_data()
@@ -163,7 +163,7 @@ def app():
                 nome_arquivo = "resultado"
             if formato_exportacao == "Excel":
                 output = BytesIO()
-                with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
                     resultado.to_excel(writer, index=False)
                     writer.save()
                 output.seek(0)
@@ -171,6 +171,9 @@ def app():
             elif formato_exportacao == "CSV":
                 csv_output = resultado.to_csv(index=False)
                 st.download_button("Baixar arquivo CSV", data=csv_output, file_name=f"{nome_arquivo}.csv", mime="text/csv")
+            elif formato_exportacao == "PDF":
+                # PDF export functionality
+                pass
             st.success(f"Tabela exportada como {nome_arquivo}.{formato_exportacao}")
 
 

@@ -3,3 +3,4 @@ pandas
 requests
 time
 io
+xlsxwriter
