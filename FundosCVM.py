@@ -7,20 +7,24 @@ from datetime import datetime
 import os
 import pickle
 import time
-from io import BytesIO
+import io
 import base64
 
 def export_file(df, format, file_name):
     if format == 'Excel':
         file_extension = 'xlsx'
-        to_export = df.to_excel(index=False)
+        output = io.BytesIO()
+        df.to_excel(output, index=False)
+        to_export = output.getvalue()
     elif format == 'CSV':
         file_extension = 'csv'
-        to_export = df.to_csv(index=False)
+        output = io.StringIO()
+        df.to_csv(output, index=False)
+        to_export = output.getvalue()
     else:
         return None
 
-    b64 = base64.b64encode(to_export.encode()).decode()
+    b64 = base64.b64encode(to_export).decode()
     download_link = f'<a href="data:application/{file_extension};base64,{b64}" download="{file_name}.{file_extension}">Clique aqui para baixar o arquivo {file_name}.{file_extension}</a>'
     return download_link
 
