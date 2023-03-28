@@ -10,7 +10,6 @@ import pickle
 import time
 import io
 import base64
-import xlsxwriter
 
 def export_file(df, format, file_name):
     if format == 'Excel':
