@@ -1,6 +1,6 @@
 streamlit
 pandas
 requests
-openpyx
+openpyxl
 time
 io
