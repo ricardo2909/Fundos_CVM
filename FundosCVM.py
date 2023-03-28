@@ -14,7 +14,7 @@ def export_file(df, format, file_name):
     if format == 'Excel':
         file_extension = 'xlsx'
         output = io.BytesIO()
-        df.to_excel(output, index=False)
+        df.to_excel(output, index=False, engine='xlsxwriter')
         to_export = output.getvalue()
     elif format == 'CSV':
         file_extension = 'csv'
