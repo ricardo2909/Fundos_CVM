@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import requests
 import zipfile
 import datetime as dt
@@ -9,6 +10,7 @@ import pickle
 import time
 import io
 import base64
+import xlsxwriter
 
 def export_file(df, format, file_name):
     if format == 'Excel':
