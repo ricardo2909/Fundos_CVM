@@ -54,6 +54,8 @@ def app():
 
     st.title("Consulta de Fundos")
 
+    
+
     # Criando as caixas de texto para receber os CNPJs e a data
     cnpj_input = st.text_input("Digite o CNPJ do fundo")
 
@@ -68,12 +70,15 @@ def app():
                     cnpjs_salvos.append(cnpj)
                     msg = st.empty()  # criar espaço vazio na interface do usuário
                     msg.success(f"CNPJ {cnpj} adicionado com sucesso!")
-                    time.sleep(1)  # aguardar 3 segundos
-                    msg.empty()  # limpar mensagem após 3 segundos
+                    time.sleep(0.5)  # aguardar 1 segundos
+                    msg.empty()  # limpar mensagem após 3 segundoscd ..
+
+
+
                 else:
                     msg = st.empty()
                     msg.warning(f"CNPJ {cnpj} inválido ou já existe na lista.")
-                    time.sleep(1)
+                    time.sleep(0.5)
                     msg.empty()
 
             # Salvando a lista de CNPJs no arquivo texto
@@ -82,7 +87,7 @@ def app():
         else:
             msg = st.empty()
             msg.warning("Digite um CNPJ.")
-            time.sleep(1)
+            time.sleep(0.5)
             msg.empty()
         
 
@@ -93,12 +98,24 @@ def app():
     if st.button("Remover CNPJ"):
         if cnpj_remover:
             cnpjs_salvos.remove(cnpj_remover)
-            st.success("CNPJ removido com sucesso!")
+            msg = st.empty()
+            msg.success("CNPJ removido com sucesso!")
+            time.sleep(0.5)
+            msg.empty()
             # Salvando a lista de CNPJs no arquivo texto
             with open("cnpjs.txt", "w") as arquivo:
                 arquivo.write("\n".join(cnpjs_salvos))
         else:
-            st.warning("Selecione um CNPJ para remover.")
+            msg = st.empty()
+            msg.warning("Selecione um CNPJ para remover.")
+            time.sleep(0.5)
+            msg.empty()
+
+    if os.path.isfile("cnpjs.txt"):
+        with open("cnpjs.txt", "r") as arquivo:
+            cnpjs_salvos = arquivo.read().splitlines()
+    else:
+        cnpjs_salvos = []
 
     # Botão para exibir/ocultar a tabela com a lista de CNPJs salvos
     exibir_tabela = st.checkbox("Mostrar lista de CNPJs salvos")
