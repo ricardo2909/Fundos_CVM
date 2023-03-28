@@ -1,32 +1,26 @@
 import streamlit as st
-from nbconvert import PythonExporter
-import nbformat
+import FundosCVM  # importa o seu script FundosCVM.py
 
-# Converter o arquivo .ipynb em um script Python
-exporter = PythonExporter()
-code, _ = exporter.from_notebook_node(nb)
+# Define a página inicial
+def homepage():
+    st.title("Consulta de Fundos CVM")
+    st.write("Insira os CNPJs dos fundos que deseja consultar e selecione a data:")
 
-# Executar o código Python em um novo contexto
-with open('FundosCVM.ipynb') as fh:
-    nb = nbformat.reads(fh.read(), nbformat.NO_CONVERT)
-exec(compile(code, '<string>', 'exec'), globals(), locals())
+    # Campo de entrada para CNPJ
+    cnpj_input = st.text_input("Insira o CNPJ do fundo:")
 
-# Inicializar a lista de CNPJs
-cnpjs = []
+    # Campo de seleção de data
+    data_input = st.date_input("Selecione a data da consulta:")
 
-# Adicionar um botão para inserir um novo CNPJ na lista
-cnpj_input = st.text_input("Insira um CNPJ:")
-if st.button("Adicionar CNPJ"):
-    if cnpj_input:
-        cnpjs.append(cnpj_input)
+    # Botão para executar a consulta
+    if st.button("Consultar"):
+        resultado = FundosCVM.consultar_fundos([cnpj_input], data_input) # Chama a função do seu script FundosCVM.py
+        st.write(resultado)
 
-# Adicionar um widget de calendário para selecionar a data da consulta
-data_input = st.date_input("Selecione a data da consulta:")
+# Inicializa o app
+def main():
+    st.set_page_config(page_title="Consulta de Fundos CVM")
+    homepage()
 
-# Adicionar uma lista dos CNPJs inseridos com a opção de excluí-los
-st.write("CNPJs inseridos:")
-for i, cnpj in enumerate(cnpjs):
-    st.write(f"{i+1}. {cnpj}")
-    if st.button(f"Excluir {cnpj}"):
-        cnpjs.remove(cnpj)
-        st.write(f"{cnpj} excluído com sucesso!")
+if __name__ == "__main__":
+    main()

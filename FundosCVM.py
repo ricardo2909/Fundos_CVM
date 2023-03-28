@@ -58,19 +58,19 @@ base_filtro = base_filtro[['DT_COMPTC','CNPJ_FUNDO', 'DENOM_SOCIAL', 'VL_QUOTA']
 base_filtro['VL_QUOTA'] = base_filtro['VL_QUOTA'].str.replace('.', ',')
 
 #salvar num arquivo excel na aba do dia
-nome_da_aba = f"{dia}_{mes}_{ano}"
-nome_arquivo = "Fundos_CVM.xlsx"
-book = load_workbook(nome_arquivo)
-if nome_da_aba in book.sheetnames:
-    # se a aba já existe, sobrescreve os dados
-    writer = pd.ExcelWriter(nome_arquivo, engine='openpyxl')
-    writer.book = book
-    writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
-    base_filtro.to_excel(writer, sheet_name=nome_da_aba, index=False)
-    writer.save()
-else:
-    # se a aba não existe, cria uma nova aba
-    with pd.ExcelWriter(nome_arquivo, engine='openpyxl') as writer:
-        writer.book = book
-        base_filtro.to_excel(writer, sheet_name=nome_da_aba, index=False)
-        writer.save()
+# nome_da_aba = f"{dia}_{mes}_{ano}"
+# nome_arquivo = "Fundos_CVM.xlsx"
+# book = load_workbook(nome_arquivo)
+# if nome_da_aba in book.sheetnames:
+#     # se a aba já existe, sobrescreve os dados
+#     writer = pd.ExcelWriter(nome_arquivo, engine='openpyxl')
+#     writer.book = book
+#     writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
+#     base_filtro.to_excel(writer, sheet_name=nome_da_aba, index=False)
+#     writer.save()
+# else:
+#     # se a aba não existe, cria uma nova aba
+#     with pd.ExcelWriter(nome_arquivo, engine='openpyxl') as writer:
+#         writer.book = book
+#         base_filtro.to_excel(writer, sheet_name=nome_da_aba, index=False)
+#         writer.save()
