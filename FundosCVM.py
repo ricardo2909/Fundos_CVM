@@ -7,6 +7,7 @@ from openpyxl import load_workbook
 from datetime import datetime
 import os
 import pickle
+import time
 
 
 # Definindo a função para consultar os fundos
@@ -59,13 +60,31 @@ def app():
     # Botão para adicionar o CNPJ digitado à lista de CNPJs salvos
     if st.button("Adicionar CNPJ"):
         if cnpj_input:
-            cnpjs_salvos.append(cnpj_input)
-            st.success("CNPJ adicionado com sucesso!")
+            cnpj_list = [cnpj.strip() for cnpj in cnpj_input.split(",")]  # dividir entrada do usuário em uma lista de CNPJs
+            cnpjs_validos = []  # criar lista para os CNPJs válidos
+            for cnpj in cnpj_list:
+                if cnpj not in cnpjs_salvos:
+                    # Verificar CNPJ e adicionar à lista
+                    cnpjs_salvos.append(cnpj)
+                    msg = st.empty()  # criar espaço vazio na interface do usuário
+                    msg.success(f"CNPJ {cnpj} adicionado com sucesso!")
+                    time.sleep(1)  # aguardar 3 segundos
+                    msg.empty()  # limpar mensagem após 3 segundos
+                else:
+                    msg = st.empty()
+                    msg.warning(f"CNPJ {cnpj} inválido ou já existe na lista.")
+                    time.sleep(1)
+                    msg.empty()
+
             # Salvando a lista de CNPJs no arquivo texto
             with open("cnpjs.txt", "w") as arquivo:
                 arquivo.write("\n".join(cnpjs_salvos))
         else:
-            st.warning("Digite um CNPJ válido.")
+            msg = st.empty()
+            msg.warning("Digite um CNPJ.")
+            time.sleep(1)
+            msg.empty()
+        
 
     # Caixa de seleção para remover um CNPJ da lista
     cnpj_remover = st.selectbox("Remover CNPJ", [None, *cnpjs_salvos])
@@ -92,10 +111,12 @@ def app():
             st.write("\n")
         else:
             st.warning("Não há CNPJs salvos.")
+    #pegar a data de hoje - 2 e transformar no padrao aceito pela API
+    data_padrao =  dt.date.today() - dt.timedelta(days=2)
     
     # Se houver CNPJs salvos, exibe o campo para selecionar a data e o botão para consulta
     if cnpjs_salvos:
-        data = st.date_input("Selecione a data que deseja consultar")
+        data = st.date_input("Selecione a data que deseja consultar", value=data_padrao, max_value=dt.date.today())
 
         # Formatando a data para o formato AAAAMMDD
         data_str = data.strftime('%Y%m%d')
@@ -110,18 +131,26 @@ def app():
             st.write(resultado)
     else:
         st.warning("Digite um CNPJ e clique em 'Adicionar CNPJ' para começar a consultar.")
+
+    nome_arquivo = st.text_input("Digite o nome do arquivo para salvar (sem extensão)", value = f"Fundos_{data_str}", max_chars=50)
     # Botão para exportar a tabela resultante em diferentes formatos
     formato_exportacao = st.selectbox("Selecione o formato de exportação", ["Excel", "CSV", "PDF"])
     if st.button("Exportar tabela"):
         if resultado.empty:
             st.warning("Não há tabela para exportar.")
         else:
+            # Definindo o nome do arquivo de acordo com o que foi digitado pelo usuário
+            if nome_arquivo:
+                nome_arquivo = nome_arquivo.replace(" ", "_")
+            else:
+                nome_arquivo = "resultado"
             if formato_exportacao == "Excel":
-                excel_file = resultado.to_excel("resultado.xlsx", index=False)
+                excel_file = resultado.to_excel(f"{nome_arquivo}.xlsx", index=False)
             elif formato_exportacao == "CSV":
-                csv_file = resultado.to_csv("resultado.csv", index=False)
+                csv_file = resultado.to_csv(f"{nome_arquivo}.csv", index=False)
             elif formato_exportacao == "PDF":
-                pdf_file = resultado.to_pdf("resultado.pdf", index=False)
+                pdf_file = resultado.to_pdf(f"{nome_arquivo}.pdf", index=False)
+            st.success(f"Tabela exportada como {nome_arquivo}.{formato_exportacao}")
 
 
 
