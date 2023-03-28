@@ -8,7 +8,6 @@ import os
 import pickle
 import time
 from io import BytesIO
-from openpyxl.workbook import Workbook
 
 
 # Definindo a função para consultar os fundos
