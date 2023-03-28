@@ -11,33 +11,28 @@ import time
 import io
 import base64
 
-def export_file(df, format, file_name):
-    if format == 'Excel':
-        file_extension = 'xlsx'
+def export_file(df, file_format, file_name):
+    if file_format == "Excel":
         output = io.BytesIO()
-        
-        # Save the DataFrame as a CSV file in memory
-        csv_buffer = io.StringIO()
-        df.to_csv(csv_buffer, index=False)
-        csv_buffer.seek(0)
-        
-        # Read the CSV file from memory and convert it to an xlsx file
-        temp_df = pd.read_csv(csv_buffer)
-        temp_df.to_excel(output, index=False, engine='xlsxwriter')
-        
-        to_export = output.getvalue()
-    elif format == 'CSV':
-        file_extension = 'csv'
+        writer = pd.ExcelWriter(output, engine="xlsxwriter")
+        df.to_excel(writer, index=False, sheet_name="Sheet1")
+        writer.save()
+        output.seek(0)
+
+        b64 = base64.b64encode(output.getvalue()).decode("utf-8")
+        download_link = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="{file_name}.xlsx">Download Excel file</a>'
+    elif file_format == "CSV":
         output = io.StringIO()
         df.to_csv(output, index=False)
-        to_export = output.getvalue()
+        output.seek(0)
+
+        b64 = base64.b64encode(output.getvalue().encode("utf-8")).decode("utf-8")
+        download_link = f'<a href="data:text/csv;base64,{b64}" download="{file_name}.csv">Download CSV file</a>'
     else:
-        return None
+        # Add other formats if needed
+        pass
 
-    b64 = base64.b64encode(to_export).decode()
-    download_link = f'<a href="data:application/{file_extension};base64,{b64}" download="{file_name}.{file_extension}">Clique aqui para baixar o arquivo {file_name}.{file_extension}</a>'
     return download_link
-
 # Definindo a função para consultar os fundos
 @st.cache_data()
 def consultar_fundos(cnpjs,data):
