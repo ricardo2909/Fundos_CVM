@@ -12,8 +12,6 @@ import io
 import base64
 import hashlib
 from io import BytesIO
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 
 def export_file(df, file_name):
     links = {}

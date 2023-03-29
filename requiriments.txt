@@ -6,4 +6,3 @@ openpyxl
 io
 base64
 xlsxwriter
-reportlab
