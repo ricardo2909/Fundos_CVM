@@ -62,6 +62,7 @@ def consultar_fundos(lista,data,tipo):
     base_filtro['VL_QUOTA'] = base_filtro['VL_QUOTA'].str.replace('.', ',')
     return base_filtro
 
+@st.cache_data()
 def app():
     
     dados_cadastro = pd.read_csv('https://dados.cvm.gov.br/dados/FI/CAD/DADOS/cad_fi.csv', sep=";", encoding="ISO-8859-1", dtype={'CNPJ_FUNDO': str})
