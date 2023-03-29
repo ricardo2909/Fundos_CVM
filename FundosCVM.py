@@ -11,35 +11,29 @@ import time
 import io
 import base64
 import hashlib
-import streamlit as st
+from io import BytesIO
+
+def submit():
+    st.session_state.something = st.session_state.widget
+    st.session_state.widget = ''
 
 
+def to_excel(df):
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    df.to_excel(writer, index=False, sheet_name='Sheet1')
+    workbook = writer.book
+    worksheet = writer.sheets['Sheet1']
+    format1 = workbook.add_format({'num_format': '0.00'}) 
+    worksheet.set_column('A:A', None, format1)  
+    writer.save()
+    processed_data = output.getvalue()
+    return processed_data
 
-def export_file(df, file_format, file_name):
-    if file_format == "Excel":
-        output = io.BytesIO()
-        writer = pd.ExcelWriter(output, engine="xlsxwriter")
-        df.to_excel(writer, index=False, sheet_name="Sheet1")
-        writer.save()
-        output.seek(0)
 
-        b64 = base64.b64encode(output.getvalue()).decode("utf-8")
-        download_link = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="{file_name}.xlsx">Download Excel file</a>'
-    elif file_format == "CSV":
-        output = io.StringIO()
-        df.to_csv(output, index=False)
-        output.seek(0)
-
-        b64 = base64.b64encode(output.getvalue().encode("utf-8")).decode("utf-8")
-        download_link = f'<a href="data:text/csv;base64,{b64}" download="{file_name}.csv">Download CSV file</a>'
-    else:
-        # Add other formats if needed
-        pass
-
-    return download_link
 # Definindo a função para consultar os fundos
 @st.cache_data()
-def consultar_fundos(cnpjs,data):
+def consultar_fundos(lista,data,tipo):
     
     ano = data[:4]
     mes = data[4:6]
@@ -65,131 +59,263 @@ def consultar_fundos(cnpjs,data):
 
     dia = int(data[6:8])
 
-    base_filtro = base_final[base_final['CNPJ_FUNDO'].isin(cnpjs)]
+    if tipo == 'CNPJ':
+        base_filtro = base_final[base_final['CNPJ_FUNDO'].isin(lista)]
+    elif tipo == 'NOME':
+        base_filtro = base_final[base_final['DENOM_SOCIAL'].isin(lista)]
+
     base_filtro = base_filtro[base_filtro['DT_COMPTC'] == f"{ano}-{mes}-{dia}"]
     base_filtro = base_filtro[['DT_COMPTC','CNPJ_FUNDO', 'DENOM_SOCIAL', 'VL_QUOTA']]
     base_filtro['VL_QUOTA'] = base_filtro['VL_QUOTA'].str.replace('.', ',')
     return base_filtro
 
 def app():
+    
+    dados_cadastro = pd.read_csv('https://dados.cvm.gov.br/dados/FI/CAD/DADOS/cad_fi.csv', sep=";", encoding="ISO-8859-1", dtype={'CNPJ_FUNDO': str})
+
+    dados_cadastro = dados_cadastro[['CNPJ_FUNDO', 'DENOM_SOCIAL']]
+    dados_cadastro = dados_cadastro.drop_duplicates()
+
+    cnpjs_existentes = dados_cadastro['CNPJ_FUNDO'].tolist()
+    nomes_existentes = dados_cadastro['DENOM_SOCIAL'].tolist()
+
+    #colocar tela cheia
+    st.set_page_config(layout="wide")
     # Lendo a lista de CNPJs salvos do arquivo texto
     if os.path.isfile("cnpjs.txt"):
         with open("cnpjs.txt", "r") as arquivo:
             cnpjs_salvos = arquivo.read().splitlines()
     else:
         cnpjs_salvos = []
+    
+    if os.path.isfile("nomes.txt"):
+        with open("nomes.txt", "r") as arquivo:
+            nomes_salvos = arquivo.read().splitlines()
+    else:
+        nomes_salvos = []
 
     st.title("Consulta de Fundos")
 
-    # Criando as caixas de texto para receber os CNPJs e a data
-    cnpj_input = st.text_input("Digite o CNPJ do fundo")
+
+    # Criando as duas caixas de entrada com a classe "input"
+    col1, col2 = st.columns(2)
+    # Criando as caixas de texto para receber os CNPJs e nomes dos fundos
+    with col1:
+        cnpj_input = st.multiselect("**Selecione o CNPJ do fundo:**", cnpjs_existentes, key="cnpj_input")
+    with col2:
+        nome_input = st.multiselect("**Selecione o nome do fundo:**", nomes_existentes)
+
+    
 
     # Botão para adicionar o CNPJ digitado à lista de CNPJs salvos
-    if st.button("Adicionar CNPJ"):
-        if cnpj_input:
-            cnpj_list = [cnpj.strip() for cnpj in cnpj_input.split(",")]  # dividir entrada do usuário em uma lista de CNPJs
-            cnpjs_validos = []  # criar lista para os CNPJs válidos
-            for cnpj in cnpj_list:
-                if cnpj not in cnpjs_salvos:
-                    # Verificar CNPJ e adicionar à lista
-                    cnpjs_salvos.append(cnpj)
-                    msg = st.empty()  # criar espaço vazio na interface do usuário
-                    msg.success(f"CNPJ {cnpj} adicionado com sucesso!")
-                    time.sleep(0.5)  # aguardar 1 segundos
-                    msg.empty()  # limpar mensagem após 3 segundoscd ..
+    with col1:
+        if st.button("Adicionar CNPJ"):
+            if cnpj_input:
+                for cnpj in cnpj_input:
+                    if cnpj not in cnpjs_salvos:
+                        # Verificar CNPJ e adicionar à lista
+                        cnpjs_salvos.append(cnpj)
+                        msg = st.empty()  # criar espaço vazio na interface do usuário
+                        msg.success(f"CNPJ {cnpj} adicionado com sucesso!")
+                        time.sleep(0.4)  # aguardar 1 segundos
+                        msg.empty()  # limpar mensagem após 4 segundoscd ..
 
 
 
-                else:
-                    msg = st.empty()
-                    msg.warning(f"CNPJ {cnpj} inválido ou já existe na lista.")
-                    time.sleep(0.5)
-                    msg.empty()
+                    else:
+                        msg = st.empty()
+                        msg.warning(f"CNPJ {cnpj} inválido ou já existe na lista.")
+                        time.sleep(0.4)
+                        msg.empty()
+                # Salvando a lista de CNPJs no arquivo texto
+                with open("cnpjs.txt", "w") as arquivo:
+                    arquivo.write("\n".join(cnpjs_salvos))
+            else:
+                msg = st.empty()
+                msg.warning("Digite um CNPJ.")
+                time.sleep(0.4)
+                msg.empty()
 
-            # Salvando a lista de CNPJs no arquivo texto
-            with open("cnpjs.txt", "w") as arquivo:
-                arquivo.write("\n".join(cnpjs_salvos))
-        else:
-            msg = st.empty()
-            msg.warning("Digite um CNPJ.")
-            time.sleep(0.5)
-            msg.empty()
-        
+    with col2:
+        if st.button("Adicionar Nome"):
+            if nome_input:
+                for nome in nome_input:
+                    if nome not in nomes_salvos:
+                        nomes_salvos.append(nome)
+                        msg = st.empty()
+                        msg.success(f"Nome {nome} adicionado com sucesso!")
+                        time.sleep(0.4)
+                        msg.empty()
+                    else:
+                        msg = st.empty()
+                        msg.warning(f"Nome {nome} inválido ou já existe na lista.")
+                        time.sleep(0.4)
+                        msg.empty()
 
+                with open("nomes.txt", "w") as arquivo:
+                    arquivo.write("\n".join(nomes_salvos))
+            else:
+                msg = st.empty()
+                msg.warning("Digite um nome.")
+                time.sleep(0.4)
+                msg.empty()
+    
     # Caixa de seleção para remover um CNPJ da lista
-    cnpj_remover = st.selectbox("Remover CNPJ", [None, *cnpjs_salvos])
+    with col1:
+        st.write("\n")
+        cnpj_remover = st.multiselect("**Remover CNPJ:**", cnpjs_salvos)
+
+    with col2:
+        st.write("\n")
+        nome_remover = st.multiselect("**Remover Nome:**", nomes_salvos)
 
     # Botão para remover o CNPJ selecionado da lista
-    if st.button("Remover CNPJ"):
-        if cnpj_remover:
-            cnpjs_salvos.remove(cnpj_remover)
-            msg = st.empty()
-            msg.success("CNPJ removido com sucesso!")
-            time.sleep(0.5)
-            msg.empty()
-            # Salvando a lista de CNPJs no arquivo texto
-            with open("cnpjs.txt", "w") as arquivo:
-                arquivo.write("\n".join(cnpjs_salvos))
-        else:
-            msg = st.empty()
-            msg.warning("Selecione um CNPJ para remover.")
-            time.sleep(0.5)
-            msg.empty()
+    with col1:
+        if st.button("Remover CNPJ"):
+            if cnpj_remover:
+                for cnpj in cnpj_remover:
+                    cnpjs_salvos.remove(cnpj)
+                    msg = st.empty()
+                    msg.success("CNPJ removido com sucesso!")
+                    time.sleep(0.4)
+                    msg.empty()
 
-    if os.path.isfile("cnpjs.txt"):
+                # Salvando a lista de CNPJs no arquivo texto
+                with open("cnpjs.txt", "w") as arquivo:
+                    arquivo.write("\n".join(cnpjs_salvos))
+            else:
+                msg = st.empty()
+                msg.warning("Selecione um CNPJ para remover.")
+                time.sleep(0.4)
+                msg.empty()
+
+        if st.button("Limpar Lista de CNPJs"):
+            if cnpjs_salvos:
+                cnpjs_salvos = []
+                with open("cnpjs.txt", "w") as arquivo:
+                    arquivo.write("")
+            else:
+                msg = st.empty()
+                msg.warning("A lista de CNPJs já está vazia.")
+                time.sleep(0.4)
+                msg.empty()
+            
+
+    with col2:
+        if st.button("Remover Nome"):
+            if nome_remover:
+                for nome in nome_remover:
+                    nomes_salvos.remove(nome)
+                    msg = st.empty()
+                    msg.success("Nome removido com sucesso!")
+                    time.sleep(0.4)
+                    msg.empty()
+
+                with open("nomes.txt", "w") as arquivo:
+                    arquivo.write("\n".join(nomes_salvos))
+            else:
+                msg = st.empty()
+                msg.warning("Selecione um nome para remover.")
+                time.sleep(0.4)
+                msg.empty()
+        
+        if st.button("Limpar Lista de Nomes"):
+            if nomes_salvos:
+                nomes_salvos = []
+                with open("nomes.txt", "w") as arquivo:
+                    arquivo.write("")
+            else:
+                msg = st.empty()
+                msg.warning("A lista de nomes já está vazia.")
+                time.sleep(0.4)
+                msg.empty()
+
+    st.write("\n")
+    # Botão para exibir/ocultar a tabela com a lista de CNPJs salvos
+    with col1:
+        st.write("\n")
+        exibir_tabela = st.checkbox("**Mostrar lista de CNPJs salvos**")
+
+    with col2:
+        st.write("\n")
+        exibir_tabela2 = st.checkbox("**Mostrar lista de nomes salvos**")
+
+    if exibir_tabela:
         with open("cnpjs.txt", "r") as arquivo:
             cnpjs_salvos = arquivo.read().splitlines()
-    else:
-        cnpjs_salvos = []
-
-    # Botão para exibir/ocultar a tabela com a lista de CNPJs salvos
-    exibir_tabela = st.checkbox("Mostrar lista de CNPJs salvos")
-    if exibir_tabela:
-        # Exibindo a lista de CNPJs salvos
         if cnpjs_salvos:
-            st.write("CNPJs salvos:")
-            for cnpj in cnpjs_salvos:
-                st.write(f"- {cnpj}")
-            st.write("\n")
+            with col1:
+                st.write("CNPJs salvos:")
+                for cnpj in cnpjs_salvos:
+                    st.write(f"- {cnpj}")
+                st.write("\n")
         else:
             st.warning("Não há CNPJs salvos.")
+    
+    if exibir_tabela2:
+        with open("nomes.txt", "r") as arquivo:
+            nomes_salvos = arquivo.read().splitlines()
+        if nomes_salvos:
+            with col2:
+                st.write("Nomes salvos:")
+                for nome in nomes_salvos:
+                    st.write(f"- {nome}")
+                st.write("\n")
+        else:
+            st.warning("Não há nomes salvos.")
+
+    st.write("**Consultar por:**")
+
+    tipo = st.radio("**Consultar por:**", ["CNPJ", "NOME"],horizontal=True)
+
+
+    # if cnpjs_salvos and not nomes_salvos:
+    #     tipo = st.selectbox("**Consultar por:**", ["CNPJ"])
+    # elif nomes_salvos and not cnpjs_salvos:
+    #     tipo = st.selectbox("**Consultar por:**", ["NOME"])
+    # elif cnpjs_salvos and nomes_salvos:
+    #     tipo = st.selectbox("**Consultar por:**", ["CNPJ", "NOME"])
+    # else:
+    #     st.warning("Não há CNPJs ou nomes salvos.")
     #pegar a data de hoje - 2 e transformar no padrao aceito pela API
     data_padrao =  dt.date.today() - dt.timedelta(days=2)
-    
-    # Se houver CNPJs salvos, exibe o campo para selecionar a data e o botão para consulta
-    if cnpjs_salvos:
-        data = st.date_input("Selecione a data que deseja consultar", value=data_padrao, max_value=dt.date.today())
 
+    data = st.date_input("Selecione a data que deseja consultar", value=data_padrao, max_value=dt.date.today())
+    # Se houver CNPJs salvos, exibe o campo para selecionar a data e o botão para consulta
+    #criar botao
+
+    click = st.button("Consultar")
+    if tipo and click and data:
+        
+        if tipo == "CNPJ":
+            lista = cnpjs_salvos
+        else:
+            lista = nomes_salvos
         # Formatando a data para o formato AAAAMMDD
         data_str = data.strftime('%Y%m%d')
 
         # Chamando a função para consultar os fundos
-        resultado = consultar_fundos(cnpjs_salvos, data_str)
+        resultado = consultar_fundos(lista, data_str, tipo)
 
         # Exibindo o resultado na tela
         if resultado.empty:
             st.warning("Não foram encontrados resultados para os CNPJs e a data informados.")
         else:
             st.write(resultado)
-    else:
-        st.warning("Digite um CNPJ e clique em 'Adicionar CNPJ' para começar a consultar.")
+            nome_arquivo = st.text_input("Digite o nome do arquivo para salvar (sem extensão)", value = f"Fundos_{data_str}", max_chars=50)
+            # Botão para exportar a tabela resultante em diferentes formatos
 
-    nome_arquivo = st.text_input("Digite o nome do arquivo para salvar (sem extensão)", value = f"Fundos_{data_str}", max_chars=50)
-    # Botão para exportar a tabela resultante em diferentes formatos
-    formato_exportacao = st.selectbox("Selecione o formato de exportação", ["CSV"])
-    if st.button("Exportar tabela"):
-        if resultado.empty:
-            st.warning("Não há tabela para exportar.")
-        else:
-            if nome_arquivo:
-                nome_arquivo = nome_arquivo.replace(" ", "_")
-            else:
-                nome_arquivo = "resultado"
-
-            download_link = export_file(resultado, formato_exportacao, nome_arquivo)
-            if download_link:
-                st.markdown(download_link, unsafe_allow_html=True)
-            else:
-                st.error("Não foi possível gerar o arquivo para download.")
+            xlsx = to_excel(resultado)
+            st.download_button("Exportar tabela", xlsx, file_name=f"{nome_arquivo}.xlsx")
+    elif tipo and click and not data:
+        st.warning("Selecione uma data para consultar.")
+    elif data and click and not tipo:
+        st.warning("Selecione o tipo de consulta.")
+    elif click and not data and not tipo:
+        st.warning("Selecione o tipo de consulta e a data.")
+    elif tipo and data and not click:
+        st.warning("Clique no botão 'Consultar' para iniciar a consulta.")
 
 
+if __name__ == "__main__":
+    app()
