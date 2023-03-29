@@ -1,7 +1,6 @@
 streamlit
 pandas
 requests
-time
 openpyxl
 io
 base64
