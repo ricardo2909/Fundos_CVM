@@ -18,17 +18,13 @@ def submit():
     st.session_state.widget = ''
 
 
-def to_excel(df):
-    output = BytesIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    df.to_excel(writer, index=False, sheet_name='Sheet1')
-    workbook = writer.book
-    worksheet = writer.sheets['Sheet1']
-    format1 = workbook.add_format({'num_format': '0.00'}) 
-    worksheet.set_column('A:A', None, format1)  
-    writer.save()
-    processed_data = output.getvalue()
-    return processed_data
+def dowload_file(df):
+    csv = df.to_csv(index=False)
+    b64 = base64.b64encode(
+        csv.encode()
+    ).decode()  # some strings <-> bytes conversions necessary here
+    href = f'<a href="data:file/csv;base64,{b64}">Download csv file</a>'
+    return href
 
 
 # Definindo a função para consultar os fundos
@@ -305,8 +301,9 @@ def app():
             nome_arquivo = st.text_input("Digite o nome do arquivo para salvar (sem extensão)", value = f"Fundos_{data_str}", max_chars=50)
             # Botão para exportar a tabela resultante em diferentes formatos
 
-            xlsx = to_excel(resultado)
-            st.download_button("Exportar tabela", xlsx, file_name=f"{nome_arquivo}.xlsx")
+            if st.button("Exportar tabela"):
+                csv = dowload_file(resultado)
+            st.download_button("Exportar tabela", csv, file_name=f"{nome_arquivo}.xlsx")
     elif tipo and click and not data:
         st.warning("Selecione uma data para consultar.")
     elif data and click and not tipo:
