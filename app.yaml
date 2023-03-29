@@ -1,0 +1,7 @@
+runtime: python38
+
+entrypoint: streamlit run FundosCVM.py
+
+handlers:
+- url: /.*
+  script: auto
