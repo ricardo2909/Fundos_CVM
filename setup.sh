@@ -1,9 +1,6 @@
 #!/bin/bash
 set -e
 
-# Instala o pacote heroku-cli no ambiente Heroku
-npm install -g heroku
-
 # Define um diretório para os arquivos de configuração do Streamlit
 mkdir -p ~/.streamlit
 
