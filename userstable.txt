@@ -1,2 +1,0 @@
-username,password
-cesar,c08ee2a296e9cc80f185cf84596b17f6dc4e29df05c403f2b0fb077876289cb8
