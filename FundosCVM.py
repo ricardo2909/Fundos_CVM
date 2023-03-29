@@ -14,27 +14,15 @@ import hashlib
 from io import BytesIO
 
 def export_file(df, file_name):
-    links = {}
-
-    # Excel
-    output_excel = io.BytesIO()
-    writer = pd.ExcelWriter(output_excel, engine="xlsxwriter")
-    df.to_excel(writer, index=False, sheet_name="Sheet1")
-    writer.save()
-    output_excel.seek(0)
-
-    b64_excel = base64.b64encode(output_excel.getvalue()).decode("utf-8")
-    links["Excel"] = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="{file_name}.xlsx">Download Excel file</a>'
-
     # CSV
     output_csv = io.StringIO()
     df.to_csv(output_csv, index=False)
     output_csv.seek(0)
 
     b64_csv = base64.b64encode(output_csv.getvalue().encode("utf-8")).decode("utf-8")
-    links["CSV"] = f'<a href="data:text/csv;base64,{b64_csv}" download="{file_name}.csv">Download CSV file</a>'
+    link = f'<a href="data:text/csv;base64,{b64_csv}" download="{file_name}.csv">Download CSV file</a>'
 
-    return links
+    return link
 
 # Definindo a função para consultar os fundos
 @st.cache_data()
@@ -300,9 +288,8 @@ def app():
             
         formato_exportacao = "Excel"
 
-        download_links = export_file(resultado, nome_arquivo)
-        st.markdown(download_links["Excel"], unsafe_allow_html=True)
-        st.markdown(download_links["CSV"], unsafe_allow_html=True)
+        download_link= export_file(resultado, nome_arquivo)
+        st.markdown(download_link, unsafe_allow_html=True)
 
     elif tipo and click and not data:
         st.warning("Selecione uma data para consultar.")
