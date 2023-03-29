@@ -13,14 +13,17 @@ import base64
 import hashlib
 from io import BytesIO
 
-def export_file(df, file_name):
-    # CSV
-    output_csv = io.StringIO()
-    df.to_csv(output_csv, index=False)
-    output_csv.seek(0)
 
-    b64_csv = base64.b64encode(output_csv.getvalue().encode("utf-8")).decode("utf-8")
-    link = f'<a href="data:text/csv;base64,{b64_csv}" download="{file_name}.csv">Download CSV file</a>'
+def export_file(df, file_name):
+    # Excel
+    output_excel = io.BytesIO()
+    writer = pd.ExcelWriter(output_excel, engine='openpyxl')
+    df.to_excel(writer, index=False, sheet_name='Sheet1')
+    writer.save()
+    output_excel.seek(0)
+
+    b64_excel = base64.b64encode(output_excel.getvalue()).decode("utf-8")
+    link = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="{file_name}.xlsx">Download Excel file</a>'
 
     return link
 
@@ -32,10 +35,12 @@ def consultar_fundos(lista,data,tipo):
     mes = data[4:6]
     url = f"https://dados.cvm.gov.br/dados/FI/DOC/INF_DIARIO/DADOS/inf_diario_fi_{ano}{mes}.zip"
 
-    download = requests.get(url)
+    #verificar se arquivo nao existe no diretorio
+    if not os.path.exists(f"inf_diario_fi_{ano}{mes}.zip"):
+        download = requests.get(url)
 
-    with open(f"inf_diario_fi_{ano}{mes}.zip", "wb") as arquivo_cvm:
-        arquivo_cvm.write(download.content)
+        with open(f"inf_diario_fi_{ano}{mes}.zip", "wb") as arquivo_cvm:
+            arquivo_cvm.write(download.content)
 
     arquivo_zip = zipfile.ZipFile(f"inf_diario_fi_{ano}{mes}.zip")
 
@@ -62,7 +67,7 @@ def consultar_fundos(lista,data,tipo):
     base_filtro['VL_QUOTA'] = base_filtro['VL_QUOTA'].str.replace('.', ',')
     return base_filtro
 
-@st.cache_data()
+
 def app():
     
     dados_cadastro = pd.read_csv('https://dados.cvm.gov.br/dados/FI/CAD/DADOS/cad_fi.csv', sep=";", encoding="ISO-8859-1", dtype={'CNPJ_FUNDO': str})
