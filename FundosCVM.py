@@ -80,7 +80,7 @@ def app():
     nomes_existentes = dados_cadastro['DENOM_SOCIAL'].tolist()
 
     #colocar tela cheia
-    st.set_page_config(layout="wide")
+    
     # Lendo a lista de CNPJs salvos do arquivo texto
     if os.path.isfile("cnpjs.txt"):
         with open("cnpjs.txt", "r") as arquivo:

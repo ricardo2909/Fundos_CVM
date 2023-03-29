@@ -46,6 +46,7 @@ def view_all_users():
 
 
 def main():
+    st.set_page_config(layout="wide")
     import FundosCVM
     """Simple Login App"""
 
