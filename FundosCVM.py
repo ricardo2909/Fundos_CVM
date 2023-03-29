@@ -12,20 +12,32 @@ import io
 import base64
 import hashlib
 from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 
-def submit():
-    st.session_state.something = st.session_state.widget
-    st.session_state.widget = ''
+def export_file(df, file_name):
+    links = {}
 
+    # Excel
+    output_excel = io.BytesIO()
+    writer = pd.ExcelWriter(output_excel, engine="xlsxwriter")
+    df.to_excel(writer, index=False, sheet_name="Sheet1")
+    writer.save()
+    output_excel.seek(0)
 
-def dowload_file(df):
-    csv = df.to_csv(index=False)
-    b64 = base64.b64encode(
-        csv.encode()
-    ).decode()  # some strings <-> bytes conversions necessary here
-    href = f'<a href="data:file/csv;base64,{b64}">Download csv file</a>'
-    return href
+    b64_excel = base64.b64encode(output_excel.getvalue()).decode("utf-8")
+    links["Excel"] = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="{file_name}.xlsx">Download Excel file</a>'
 
+    # CSV
+    output_csv = io.StringIO()
+    df.to_csv(output_csv, index=False)
+    output_csv.seek(0)
+
+    b64_csv = base64.b64encode(output_csv.getvalue().encode("utf-8")).decode("utf-8")
+    links["CSV"] = f'<a href="data:text/csv;base64,{b64_csv}" download="{file_name}.csv">Download CSV file</a>'
+
+    return links
 
 # Definindo a função para consultar os fundos
 @st.cache_data()
@@ -89,6 +101,7 @@ def app():
             nomes_salvos = arquivo.read().splitlines()
     else:
         nomes_salvos = []
+
 
     st.title("Consulta de Fundos")
 
@@ -265,15 +278,6 @@ def app():
     tipo = st.radio("**Consultar por:**", ["CNPJ", "NOME"],horizontal=True)
 
 
-    # if cnpjs_salvos and not nomes_salvos:
-    #     tipo = st.selectbox("**Consultar por:**", ["CNPJ"])
-    # elif nomes_salvos and not cnpjs_salvos:
-    #     tipo = st.selectbox("**Consultar por:**", ["NOME"])
-    # elif cnpjs_salvos and nomes_salvos:
-    #     tipo = st.selectbox("**Consultar por:**", ["CNPJ", "NOME"])
-    # else:
-    #     st.warning("Não há CNPJs ou nomes salvos.")
-    #pegar a data de hoje - 2 e transformar no padrao aceito pela API
     data_padrao =  dt.date.today() - dt.timedelta(days=2)
 
     data = st.date_input("Selecione a data que deseja consultar", value=data_padrao, max_value=dt.date.today())
@@ -282,28 +286,27 @@ def app():
 
     click = st.button("Consultar")
     if tipo and click and data:
-        
         if tipo == "CNPJ":
             lista = cnpjs_salvos
         else:
             lista = nomes_salvos
-        # Formatando a data para o formato AAAAMMDD
         data_str = data.strftime('%Y%m%d')
 
-        # Chamando a função para consultar os fundos
         resultado = consultar_fundos(lista, data_str, tipo)
+        st.table(resultado)
 
-        # Exibindo o resultado na tela
-        if resultado.empty:
-            st.warning("Não foram encontrados resultados para os CNPJs e a data informados.")
-        else:
-            st.write(resultado)
-            nome_arquivo = st.text_input("Digite o nome do arquivo para salvar (sem extensão)", value = f"Fundos_{data_str}", max_chars=50)
-            # Botão para exportar a tabela resultante em diferentes formatos
+        nome_arquivo = st.text_input("Digite o nome do arquivo para salvar (sem extensão)", value=f"Fundos_{data_str}", max_chars=50)
 
-            if st.button("Exportar tabela"):
-                csv = dowload_file(resultado)
-            st.download_button("Exportar tabela", csv, file_name=f"{nome_arquivo}.xlsx")
+        if nome_arquivo:
+            nome_arquivo = nome_arquivo.replace(" ", "_")
+            nome_arquivo = nome_arquivo.replace(".", "_")
+            
+        formato_exportacao = "Excel"
+
+        download_links = export_file(resultado, nome_arquivo)
+        st.markdown(download_links["Excel"], unsafe_allow_html=True)
+        st.markdown(download_links["CSV"], unsafe_allow_html=True)
+
     elif tipo and click and not data:
         st.warning("Selecione uma data para consultar.")
     elif data and click and not tipo:
@@ -312,6 +315,7 @@ def app():
         st.warning("Selecione o tipo de consulta e a data.")
     elif tipo and data and not click:
         st.warning("Clique no botão 'Consultar' para iniciar a consulta.")
+    
 
 
 if __name__ == "__main__":
